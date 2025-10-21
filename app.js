@@ -1,13 +1,23 @@
+// Importación de los módulos necesarios para el código de app.js
+
+// Módulo para leer entrada del usuario desde la consola
 const readline = require('readline');
+
+// Importamos todas las funciones de lógica del archivo ventas.js
 const ventas = require('./services/ventas.js');
 
+
+// Configuración de la salida y entrada de datos (interfaz)
+
+// Creamos la interfaz para leer desde el teclado y mostrar en pantalla
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
+// La función principal  - MENÚ DEL SISTEMA
 function mostrarMenu() {
-  console.log('\nBienvenido al sistema Delicia');
+  console.log('\n--------Bienvenido al Sistema de Ventas - Panadería Delicia--------');
   console.log('1. Registrar venta');
   console.log('2. Listar productos');
   console.log('3. Buscar producto');
@@ -19,7 +29,13 @@ function mostrarMenu() {
   console.log('9. Salir');
 }
 
+/**
+ * Pregunta al usuario qué opción del menú desea ejecutar
+ * y dirige a la función correspondiente
+ */
+
 function preguntarOpcion() {
+  // Pregunta al usuario y espera su respuesta
   rl.question('\nSeleccione una opcion: ', (opcion) => {
     switch(opcion) {
       case '1':
@@ -51,6 +67,7 @@ function preguntarOpcion() {
         rl.close();
         return;
       default:
+        // Si la opción no es válida, mostrar error y repetir
         console.log('Opcion no valida, por favor intente nuevamente.');
         mostrarMenu();
         preguntarOpcion();
@@ -58,30 +75,36 @@ function preguntarOpcion() {
   });
 }
 
+// Funciones para la gestión de ventas
+
 function registrarVenta() {
+  // Función interna que se llama a sí misma para agregar productos 
   function agregarProducto() {
+    // Preguntar qué producto quiere agregar
     rl.question('Producto (nombre o ID): ', (entradaProducto) => {
+       // Validación de ingreso de datos, para evitar texto vacio
       if (!entradaProducto.trim()) {
         console.log('Entrada no valida');
         agregarProducto();
         return;
       }
-      
+      // Preguntar la cantidad que se desea
       rl.question('Cantidad: ', (cantidadStr) => {
         const cantidad = parseInt(cantidadStr);
-        
+
+        // Validación para que la cantidad sea positivo mayor a 0
         if (isNaN(cantidad) || cantidad <= 0) {
           console.log('Cantidad debe ser un numero mayor a 0');
           agregarProducto();
           return;
         }
-        
+        // Intentar agregar el producto al carrito
         const resultado = ventas.agregarAlCarrito(entradaProducto, cantidad);
         console.log(resultado.mensaje);
-        
+         // Preguntar si se quiere agregar otro producto
         rl.question('¿Agregar otro producto? (s/n): ', (respuesta) => {
           if (respuesta.toLowerCase() === 's') {
-            agregarProducto();
+            agregarProducto(); // Continuar agregando productos
           } else {
             // Vuelve al menú principal automáticamente
             mostrarMenu();
@@ -91,25 +114,37 @@ function registrarVenta() {
       });
     });
   }
-  
+   // Iniciar el proceso de agregar productos
   agregarProducto();
 }
 
+/**
+ * Muestra todos los productos disponibles en el catálogo
+ * con su ID, nombre, precio y categoría
+ */
+
 function listarProductos() {
+  // Mostrar la lista de productos desde el módulo de ventas
   const productos = ventas.listarProductos();
   console.log('\nProductos disponibles:');
+  // Recorrer y mostrar cada producto
   productos.forEach(p => {
     console.log(`${p.id}. ${p.nombre} - S/${p.precio.toFixed(2)} (${p.categoria})`);
   });
-  // Vuelve automáticamente al menú
+    // Volver automáticamente al menú principal 
   mostrarMenu();
   preguntarOpcion();
 }
-
+/**
+ * Busca un producto específico por nombre o ID
+ * y muestra su información si lo encuentra
+ */
 function buscarProducto() {
   rl.question('Ingrese el nombre o ID del producto a buscar: ', (entrada) => {
+    // Buscar producto en el catálogo
     const producto = ventas.buscarProducto(entrada);
     if (producto) {
+      //Si se encuentra el producto - se muestra la información
       console.log(`Producto encontrado: ${producto.nombre} - S/${producto.precio.toFixed(2)} (${producto.categoria})`);
     } else {
       console.log('Producto no encontrado');
@@ -119,8 +154,11 @@ function buscarProducto() {
     preguntarOpcion();
   });
 }
-
+/**
+ * Se muestra el contenido actual del carrito de compras con todos los productos
+ */
 function verCarrito() {
+  // Obtener productos del carrito
   const carrito = ventas.verCarrito();
   console.log('\nCarrito actual:');
   
@@ -129,15 +167,19 @@ function verCarrito() {
     // Si está vacío, muestra opciones igualmente
     mostrarOpcionesCarrito();
   } else {
+    // Mostrar cada producto con su cantidad y total de monto por el precio
     carrito.forEach((item, index) => {
       const subtotal = item.producto.precio * item.cantidad;
       console.log(`${index + 1}. ${item.producto.nombre} - ${item.cantidad} x S/${item.producto.precio.toFixed(2)} = S/${subtotal.toFixed(2)}`);
     });
-    
+     // Mostrar opciones de gestión del carrito
     mostrarOpcionesCarrito();
   }
 }
-
+/**
+ * Muestra las opciones disponibles para gestionar el carrito
+ * y procesa la selección del usuario
+ */
 function mostrarOpcionesCarrito() {
   console.log('\nOpciones del carrito:');
   console.log('1. Eliminar producto');
@@ -155,25 +197,29 @@ function mostrarOpcionesCarrito() {
         });
         break;
       case '2':
+        // Vaciar todo el carrito
         const mensaje = ventas.vaciarCarrito();
         console.log(mensaje);
-        // Después de vaciar, vuelve al menú principal
+        // Después de vaciar el, vuelve al menú principal
         mostrarMenu();
         preguntarOpcion();
         break;
       case '3':
-        // Vuelve al menú principal
+        // Vuelve al menú principal sin cambios
         mostrarMenu();
         preguntarOpcion();
         break;
       default:
         console.log('Opcion no valida');
-        mostrarOpcionesCarrito();
+        mostrarOpcionesCarrito(); // Repetir opciones
     }
   });
 }
-
+/**
+ * Se calcula el monto total y muestra el total de la compra actual incluyendo el subtotal e IGV
+ */
 function calcularTotal() {
+    // Calcular todos los montos totales
   const totales = ventas.calcularTotales();
   console.log('\nCalculo de totales:');
   console.log(`Subtotal: S/${totales.subtotal.toFixed(2)}`);
@@ -187,7 +233,9 @@ function calcularTotal() {
     preguntarOpcion();
   });
 }
-
+/**
+ * Se genera y muestra el ticket de compra final, también registra la venta y vacía el carrito
+ */
 function generarTicket() {
   const resultado = ventas.generarTicket();
   if (resultado.exito) {
@@ -202,17 +250,20 @@ function generarTicket() {
     preguntarOpcion();
   });
 }
-
+/**
+ * Se muestra reportes y estadísticas del sistema
+ */
 function mostrarReportes() {
+  // Obtener datos para reportes
   const reportes = ventas.generarReportes();
   
   console.log('\n--- REPORTES ---');
-  
+  // Mostrar top 3 productos más caros
   console.log('\nTop 3 productos mas caros:');
   reportes.productosMasCaros.forEach((producto, index) => {
     console.log(`${index + 1}. ${producto.nombre} - S/${producto.precio.toFixed(2)}`);
   });
-  
+   // Mostrar productos más vendidos
   console.log('\nProductos mas vendidos:');
   if (reportes.productosMasVendidos.length === 0) {
     console.log('No hay ventas registradas aun');
@@ -232,7 +283,9 @@ function mostrarReportes() {
     preguntarOpcion();
   });
 }
-
+/**
+ * Se borra o vacía completamente el carrito de compras
+ */
 function vaciarCarrito() {
   const mensaje = ventas.vaciarCarrito();
   console.log(mensaje);
@@ -240,10 +293,12 @@ function vaciarCarrito() {
   mostrarMenu();
   preguntarOpcion();
 }
-
+/**
+ * Función que inicia la aplicación, se muestra el menú principal y espera la primera interacción
+ */
 function iniciar() {
   mostrarMenu();
-  preguntarOpcion();
+  preguntarOpcion(); // Esperar selección del usuario
 }
-
+// Se ejecuta la aplicación
 iniciar();
